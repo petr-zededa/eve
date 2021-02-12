@@ -105,40 +105,40 @@ func ExecCmd(cmd, host, user, pass, remoteFile, localFile string,
 				remoteFile, err)
 			return stats
 		}
+		defer fr.Close()
 		tempLocalFile := localFile
 		index := strings.LastIndex(tempLocalFile, "/")
-		dir_err := os.MkdirAll(tempLocalFile[:index+1], 0755)
-		if dir_err != nil {
-			stats.Error = dir_err
+		dir := tempLocalFile[:index+1]
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			stats.Error = fmt.Errorf("cannot create dir %s: %s", dir, err)
 			return stats
 		}
 
 		fl, err := os.Create(localFile)
 		if err != nil {
-			stats.Error = err
+			stats.Error = fmt.Errorf("cannot create file %s: %s", localFile, err)
 			return stats
 		}
 		defer fl.Close()
 
 		chunkSize := SingleMB
-		var written, copiedSize int64
+		var written int64
 		stats.Size = objSize
 		for {
 			if written, err = io.CopyN(fl, fr, chunkSize); err != nil && err != io.EOF {
 				stats.Error = err
 				return stats
 			}
-			copiedSize += written
-			if written != chunkSize {
-				// Must have reached EOF
-				break
-			}
-			stats.Asize = copiedSize
+			stats.Asize += written //we should process all chunks, not only divisible by chunkSize
 			if prgNotify != nil {
 				select {
 				case prgNotify <- stats:
 				default: //ignore we cannot write
 				}
+			}
+			if written != chunkSize {
+				// Must have reached EOF
+				break
 			}
 		}
 		return stats
@@ -164,15 +164,15 @@ func ExecCmd(cmd, host, user, pass, remoteFile, localFile string,
 			stats.Error = err
 			return stats
 		}
+		defer fl.Close()
 		fSize, err := fl.Stat()
 		if err != nil {
 			stats.Error = err
 			return stats
 		}
-		defer fl.Close()
 
 		chunkSize := SingleMB
-		var written, copiedSize int64
+		var written int64
 		stats := UpdateStats{}
 		stats.Size = fSize.Size()
 		for {
@@ -180,17 +180,16 @@ func ExecCmd(cmd, host, user, pass, remoteFile, localFile string,
 				stats.Error = err
 				return stats
 			}
-			copiedSize += written
-			if written != chunkSize {
-				// Must have reached EOF
-				return stats
-			}
-			stats.Asize = copiedSize
+			stats.Asize += written //we should process all chunks, not only divisible by chunkSize
 			if prgNotify != nil {
 				select {
 				case prgNotify <- stats:
 				default: //ignore we cannot write
 				}
+			}
+			if written != chunkSize {
+				// Must have reached EOF
+				return stats
 			}
 		}
 		// control never gets here - we will return from inside the loop.

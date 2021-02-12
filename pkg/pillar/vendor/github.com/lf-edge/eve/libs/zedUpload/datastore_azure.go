@@ -108,6 +108,7 @@ func (ep *AzureTransportMethod) processAzureDownload(req *DronaRequest) error {
 	if req.ackback {
 		go func(req *DronaRequest, prgNotif azure.NotifChan) {
 			ticker := time.NewTicker(StatsUpdateTicker)
+			defer ticker.Stop()
 			var stats azure.UpdateStats
 			var ok bool
 			for {

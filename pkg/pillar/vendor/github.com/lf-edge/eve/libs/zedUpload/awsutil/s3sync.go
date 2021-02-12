@@ -125,32 +125,38 @@ func (s *S3ctx) UploadFile(fname, bname, bkey string, compression bool, prgNotif
 		return location, err
 	}
 
-	creader := &CustomReader{
+	cReader := &CustomReader{
 		fp:        file,
 		upSize:    UpdateStats{Size: fileInfo.Size(), Name: bkey},
 		prgNotify: prgNotify,
 	}
 
 	reader, writer := io.Pipe()
-	if err != nil {
-		return location, err
-	}
 	if compression {
 		// Note required, but you could zip the file prior to uploading it
 		// using io.Pipe read/writer to stream gzip'ed file contents.
 		go func() {
 			gw := gzip.NewWriter(writer)
-			_, _ = io.Copy(gw, creader)
-
-			file.Close()
-			gw.Close()
-			writer.Close()
+			_, err := io.Copy(gw, cReader)
+			fCloseErr := file.Close()
+			closeErr := gw.Close()
+			if err == nil {
+				if closeErr != nil {
+					err = closeErr
+				} else {
+					err = fCloseErr
+				}
+			}
+			_ = writer.CloseWithError(err) //it always returns nil
 		}()
 	} else {
 		go func() {
-			_, _ = io.Copy(writer, creader)
-			file.Close()
-			writer.Close()
+			_, err := io.Copy(writer, cReader)
+			fCloseErr := file.Close()
+			if err == nil {
+				err = fCloseErr
+			}
+			_ = writer.CloseWithError(err) //it always returns nil
 		}()
 	}
 
@@ -166,15 +172,19 @@ func (s *S3ctx) UploadFile(fname, bname, bkey string, compression bool, prgNotif
 func (s *S3ctx) DownloadFile(fname, bname, bkey string,
 	bsize int64, prgNotify NotifChan) error {
 
-	if err := os.MkdirAll(filepath.Dir(fname), 0775); err != nil {
-		return err
+	dir := filepath.Dir(fname)
+	if err := os.MkdirAll(dir, 0775); err != nil {
+		return fmt.Errorf("cannot create dir %s: %d",
+			dir, err)
 	}
 
 	// Setup the local file
 	fd, err := os.Create(fname)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot create file %s: %d",
+			fname, err)
 	}
+	defer fd.Close()
 
 	cWriter := &CustomWriter{
 		fp:        fd,
@@ -182,13 +192,9 @@ func (s *S3ctx) DownloadFile(fname, bname, bkey string,
 		prgNotify: prgNotify,
 	}
 
-	defer fd.Close()
 	_, err = s.dn.DownloadWithContext(s.ctx, cWriter, &s3.GetObjectInput{Bucket: aws.String(bname),
 		Key: aws.String(bkey)})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // DownloadFileByChunks downloads the file from s3 chunk by chunk and passes it to the caller

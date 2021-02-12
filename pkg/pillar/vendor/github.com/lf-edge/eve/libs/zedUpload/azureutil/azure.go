@@ -108,13 +108,13 @@ func DownloadAzureBlob(accountName, accountKey, containerName, remoteFile, local
 		return err
 	}
 	if !containerExists {
-		return fmt.Errorf("Container doesn't exist")
+		return fmt.Errorf("container doesn't exist")
 	}
 	tempLocalFile := localFile
 	index := strings.LastIndex(tempLocalFile, "/")
-	dir_err := os.MkdirAll(tempLocalFile[:index+1], 0755)
-	if dir_err != nil {
-		return dir_err
+	dirErr := os.MkdirAll(tempLocalFile[:index+1], 0755)
+	if dirErr != nil {
+		return dirErr
 	}
 
 	file, err := os.Create(localFile)
@@ -133,23 +133,22 @@ func DownloadAzureBlob(accountName, accountKey, containerName, remoteFile, local
 	}
 	defer readCloser.Close()
 	chunkSize := SingleMB
-	var written, copiedSize int64
+	var written int64
 	var copyErr error
 	stats.Size = objSize
 	for {
 		if written, copyErr = io.CopyN(file, readCloser, chunkSize); copyErr != nil && copyErr != io.EOF {
 			return copyErr
 		}
-		copiedSize += written
-		if written != chunkSize {
-			break
-		}
-		stats.Asize = copiedSize
+		stats.Asize += written
 		if prgNotify != nil {
 			select {
 			case prgNotify <- stats:
 			default: //ignore we cannot write
 			}
+		}
+		if written != chunkSize {
+			break
 		}
 	}
 	return nil
@@ -242,7 +241,10 @@ func UploadAzureBlob(accountName, accountKey, containerName, remoteFile, localFi
 			return location, err
 		}
 	}
-	file, _ := os.Open(localFile)
+	file, err := os.Open(localFile)
+	if err != nil {
+		return location, err
+	}
 	defer file.Close()
 	blob := container.GetBlobReference(remoteFile)
 	putBlockErr := putBlockBlob(blob, file)

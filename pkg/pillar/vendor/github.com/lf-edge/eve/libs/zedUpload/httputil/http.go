@@ -4,7 +4,6 @@
 package http
 
 import (
-	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -78,6 +77,7 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 				host, err)
 			return stats
 		}
+		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
 			stats.Error = fmt.Errorf("bad response code for ls %s: %d",
@@ -105,7 +105,6 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 			}
 		}
 
-		resp.Body.Close()
 		stats.List = imgList
 		if prgNotify != nil {
 			select {
@@ -117,7 +116,7 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 	case "get":
 		req, err := http.NewRequest(http.MethodGet, host, nil)
 		if err != nil {
-			stats.Error = fmt.Errorf("request failed for get %s: %s",
+			stats.Error = fmt.Errorf("newrequest failed for get %s: %s",
 				host, err)
 			return stats
 		}
@@ -130,6 +129,7 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 				host, err)
 			return stats
 		}
+		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
 			stats.Error = fmt.Errorf("bad response code for %s: %d",
 				host, resp.StatusCode)
@@ -137,20 +137,21 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 		}
 		tempLocalFile := localFile
 		index := strings.LastIndex(tempLocalFile, "/")
-		dir_err := os.MkdirAll(tempLocalFile[:index+1], 0755)
-		if dir_err != nil {
-			stats.Error = dir_err
+		dir := tempLocalFile[:index+1]
+		if err = os.MkdirAll(dir, 0755); err != nil {
+			stats.Error = fmt.Errorf("cannot create dir %s: %d",
+				dir, err)
 			return stats
 		}
-		local, fileErr := os.Create(localFile)
-		if fileErr != nil {
-			stats.Error = fileErr
+		local, err := os.Create(localFile)
+		if err != nil {
+			stats.Error = fmt.Errorf("cannot create file %s: %d",
+				localFile, err)
 			return stats
 		}
 		defer local.Close()
-		defer resp.Body.Close()
 		chunkSize := SingleMB
-		var written, copiedSize int64
+		var written int64
 		stats.Size = objSize
 		for {
 			var copyErr error
@@ -158,17 +159,16 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 				stats.Error = copyErr
 				return stats
 			}
-			copiedSize += written
-			if written != chunkSize {
-				// Must have reached EOF
-				break
-			}
-			stats.Asize = copiedSize
+			stats.Asize += written //we should process all chunks, not only divisible by chunkSize
 			if prgNotify != nil {
 				select {
 				case prgNotify <- stats:
 				default: //ignore we cannot write
 				}
+			}
+			if written != chunkSize {
+				// We reached EOF
+				break
 			}
 		}
 		stats.BodyLength = int(resp.ContentLength)
@@ -180,20 +180,29 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 			return stats
 		}
 		defer file.Close()
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
+		r, w := io.Pipe()
+		writer := multipart.NewWriter(w)
 		part, err := writer.CreateFormFile(remoteFile, filepath.Base(localFile))
 		if err != nil {
+			_ = writer.Close()
+			_ = w.Close()
 			stats.Error = err
 			return stats
 		}
-		_, _ = io.Copy(part, file)
-		err = writer.Close()
+		go func() {
+			_, err := io.Copy(part, file)
+			closeErr := writer.Close()
+			if err == nil {
+				err = closeErr //propagate closeErr
+			}
+			_ = w.CloseWithError(err) //it always returns nil
+		}()
+		req, err := http.NewRequest(http.MethodPost, host, r)
 		if err != nil {
-			stats.Error = err
+			stats.Error = fmt.Errorf("newrequest failed for post %s: %s",
+				host, err)
 			return stats
 		}
-		req, _ := http.NewRequest(http.MethodPost, host, body)
 		req.Header.Set("User-Agent", userAgent)
 		req.Header.Set("Accept", "*/*")
 		req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -202,25 +211,21 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 			stats.Error = fmt.Errorf("request failed for post %s: %s",
 				host, err)
 			return stats
-		} else {
-			BODY := &bytes.Buffer{}
-			_, err := BODY.ReadFrom(resp.Body)
-			if err != nil {
-				stats.Error = fmt.Errorf("post failed for %s: %s",
-					host, err)
-				return stats
-			}
-			resp.Body.Close()
 		}
-		Body, _ := ioutil.ReadAll(resp.Body)
-		stats.Asize = int64(len(Body))
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			stats.Error = err
+			return stats
+		}
+		stats.Asize = int64(len(body))
 		if prgNotify != nil {
 			select {
 			case prgNotify <- stats:
 			default: //ignore we cannot write
 			}
 		}
-		stats.BodyLength = len(Body)
+		stats.BodyLength = len(body)
 		return stats
 	case "meta":
 		req, err := http.NewRequest(http.MethodHead, host, nil)
