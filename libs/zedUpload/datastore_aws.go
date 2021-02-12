@@ -112,6 +112,7 @@ func (ep *AwsTransportMethod) processS3Upload(req *DronaRequest) (error, int) {
 	if req.ackback {
 		go func(req *DronaRequest, prgNotif zedAWS.NotifChan) {
 			ticker := time.NewTicker(StatsUpdateTicker)
+			defer ticker.Stop()
 			var stats zedAWS.UpdateStats
 			var ok bool
 			for {
@@ -167,6 +168,7 @@ func (ep *AwsTransportMethod) processS3Download(req *DronaRequest) (error, int) 
 	if req.ackback {
 		go func(req *DronaRequest, prgNotif zedAWS.NotifChan) {
 			ticker := time.NewTicker(StatsUpdateTicker)
+			defer ticker.Stop()
 			var stats zedAWS.UpdateStats
 			var ok bool
 			for {
@@ -238,9 +240,6 @@ func (ep *AwsTransportMethod) processS3Delete(req *DronaRequest) error {
 	} else {
 		return fmt.Errorf("no s3 context")
 	}
-	if err != nil {
-		return err
-	}
 	//log.Printf("Successfully deleted file from %s, bucket:%s, %s", ep.token, ep.bucket, req.name)
 
 	return err
@@ -257,6 +256,7 @@ func (ep *AwsTransportMethod) processS3List(req *DronaRequest) ([]string, error,
 	if req.ackback {
 		go func(req *DronaRequest, prgNotif zedAWS.NotifChan) {
 			ticker := time.NewTicker(StatsUpdateTicker)
+			defer ticker.Stop()
 			var stats zedAWS.UpdateStats
 			var ok bool
 			for {

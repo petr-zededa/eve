@@ -118,6 +118,7 @@ func (ep *SftpTransportMethod) processSftpUpload(req *DronaRequest) (error, int)
 	if req.ackback {
 		go func(req *DronaRequest, prgNotif sftp.NotifChan) {
 			ticker := time.NewTicker(StatsUpdateTicker)
+			defer ticker.Stop()
 			var stats sftp.UpdateStats
 			var ok bool
 			for {
@@ -152,6 +153,7 @@ func (ep *SftpTransportMethod) processSftpDownload(req *DronaRequest) (error, in
 	if req.ackback {
 		go func(req *DronaRequest, prgNotif sftp.NotifChan) {
 			ticker := time.NewTicker(StatsUpdateTicker)
+			defer ticker.Stop()
 			var stats sftp.UpdateStats
 			var ok bool
 			for {
@@ -192,6 +194,7 @@ func (ep *SftpTransportMethod) processSftpList(req *DronaRequest) ([]string, err
 	if req.ackback {
 		go func(req *DronaRequest, prgNotif sftp.NotifChan) {
 			ticker := time.NewTicker(StatsUpdateTicker)
+			defer ticker.Stop()
 			var stats sftp.UpdateStats
 			var ok bool
 			for {
