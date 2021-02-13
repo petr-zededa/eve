@@ -184,7 +184,6 @@ func (s *S3ctx) DownloadFile(fname, bname, bkey string,
 		return fmt.Errorf("cannot create file %s: %d",
 			fname, err)
 	}
-	defer fd.Close()
 
 	cWriter := &CustomWriter{
 		fp:        fd,
@@ -194,7 +193,11 @@ func (s *S3ctx) DownloadFile(fname, bname, bkey string,
 
 	_, err = s.dn.DownloadWithContext(s.ctx, cWriter, &s3.GetObjectInput{Bucket: aws.String(bname),
 		Key: aws.String(bkey)})
-	return err
+	if err != nil {
+		_ = fd.Close()
+		return err
+	}
+	return fd.Close()
 }
 
 // DownloadFileByChunks downloads the file from s3 chunk by chunk and passes it to the caller

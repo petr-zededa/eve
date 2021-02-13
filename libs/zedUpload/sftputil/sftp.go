@@ -119,7 +119,6 @@ func ExecCmd(cmd, host, user, pass, remoteFile, localFile string,
 			stats.Error = fmt.Errorf("cannot create file %s: %s", localFile, err)
 			return stats
 		}
-		defer fl.Close()
 
 		chunkSize := SingleMB
 		var written int64
@@ -127,6 +126,7 @@ func ExecCmd(cmd, host, user, pass, remoteFile, localFile string,
 		for {
 			if written, err = io.CopyN(fl, fr, chunkSize); err != nil && err != io.EOF {
 				stats.Error = err
+				_ = fl.Close()
 				return stats
 			}
 			stats.Asize += written //we should process all chunks, not only divisible by chunkSize
@@ -140,6 +140,10 @@ func ExecCmd(cmd, host, user, pass, remoteFile, localFile string,
 				// Must have reached EOF
 				break
 			}
+		}
+		closeErr := fl.Close() // we need to take care about closing file after write
+		if stats.Error == nil {
+			stats.Error = closeErr
 		}
 		return stats
 	case "put":
@@ -198,7 +202,6 @@ func ExecCmd(cmd, host, user, pass, remoteFile, localFile string,
 		if err != nil {
 			stats.Error = fmt.Errorf("lstat failed for %s: %s",
 				remoteFile, err)
-			stats.Error = err
 			return stats
 		}
 		stats.ContentLength = file.Size()

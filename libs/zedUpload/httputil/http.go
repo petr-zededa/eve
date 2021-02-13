@@ -149,7 +149,6 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 				localFile, err)
 			return stats
 		}
-		defer local.Close()
 		chunkSize := SingleMB
 		var written int64
 		stats.Size = objSize
@@ -157,6 +156,7 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 			var copyErr error
 			if written, copyErr = io.CopyN(local, resp.Body, chunkSize); copyErr != nil && copyErr != io.EOF {
 				stats.Error = copyErr
+				_ = local.Close()
 				return stats
 			}
 			stats.Asize += written //we should process all chunks, not only divisible by chunkSize
@@ -170,6 +170,10 @@ func ExecCmd(cmd, host, remoteFile, localFile string, objSize int64,
 				// We reached EOF
 				break
 			}
+		}
+		closeErr := local.Close() // we need to take care about closing file after write
+		if stats.Error == nil {
+			stats.Error = closeErr
 		}
 		stats.BodyLength = int(resp.ContentLength)
 		return stats

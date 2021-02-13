@@ -150,13 +150,12 @@ func PullBlob(registry, repo, hash, localFile, username, apiKey string, maxsize 
 			r = lr
 		}
 	}
-
+	var f *os.File
 	if localFile != "" {
-		f, err := os.Create(localFile)
+		f, err = os.Create(localFile)
 		if err != nil {
 			return 0, "", fmt.Errorf("could not open local file %s for writing from %s: %v", localFile, ref.String(), err)
 		}
-		defer f.Close()
 		w = f
 	} else {
 		w = os.Stdout
@@ -179,6 +178,14 @@ func PullBlob(registry, repo, hash, localFile, username, apiKey string, maxsize 
 		size, err := io.Copy(pw, r)
 		if err != nil && err != io.EOF {
 			logrus.Errorf("could not write to local file %s from %s: %v", localFile, ref.String(), err)
+		}
+		if f != nil {
+			if closeErr := f.Close(); closeErr != nil {
+				logrus.Errorf("could not close local file %s: %v", localFile, err)
+				if err == nil {
+					err = closeErr
+				}
+			}
 		}
 		if err == nil {
 			err = io.EOF

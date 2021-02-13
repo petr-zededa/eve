@@ -121,14 +121,15 @@ func DownloadAzureBlob(accountName, accountKey, containerName, remoteFile, local
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 	blob := container.GetBlobReference(remoteFile)
 	getErr := blob.GetProperties(nil)
 	if getErr != nil {
+		_ = file.Close()
 		return getErr
 	}
 	readCloser, err := blob.Get(nil)
 	if err != nil {
+		_ = file.Close()
 		return err
 	}
 	defer readCloser.Close()
@@ -138,6 +139,7 @@ func DownloadAzureBlob(accountName, accountKey, containerName, remoteFile, local
 	stats.Size = objSize
 	for {
 		if written, copyErr = io.CopyN(file, readCloser, chunkSize); copyErr != nil && copyErr != io.EOF {
+			_ = file.Close()
 			return copyErr
 		}
 		stats.Asize += written
@@ -151,7 +153,7 @@ func DownloadAzureBlob(accountName, accountKey, containerName, remoteFile, local
 			break
 		}
 	}
-	return nil
+	return file.Close() // we need to take care about closing file after write
 }
 
 // DownloadAzureBlobByChunks will process the blob download by chunks, i.e., chunks will be
