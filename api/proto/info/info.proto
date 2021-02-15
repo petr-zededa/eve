@@ -7,7 +7,7 @@ import "google/protobuf/timestamp.proto";
 import "evecommon/devmodelcommon.proto";
 
 package org.lfedge.eve.info;
-option go_package  = "github.com/lf-edge/eve/api/go/info";
+option go_package = "github.com/lf-edge/eve/api/go/info";
 
 option java_package = "org.lfedge.eve.info";
 
@@ -153,29 +153,29 @@ message ZInfoDNS {
 // Enum names from OMA-TS-LWM2M_SwMgmt-V1_0-20151201-C
 // plus additions starting at BOOTING
 enum ZSwState {
-  INVALID               = 0;
-  INITIAL               = 1;    // Config received
-  DOWNLOAD_STARTED      = 2;    // Download in-progress
-  DOWNLOADED            = 3;    // Download completed, verification in-progress
-  DELIVERED             = 4;    // Verification completed
-  INSTALLED             = 5;    // Installed, ready for activation
-  BOOTING               = 6;    // booting. Booting and above means that App is activated.
-  RUNNING               = 7;    // running
-  HALTING               = 8;    // being halted
-  HALTED                = 9;    // Halted
-  RESTARTING            = 10;   // Restarting due to restart command
-  PURGING               = 11;   // Purging due to purge command
+  INVALID = 0;
+  INITIAL = 1;    // Config received
+  DOWNLOAD_STARTED = 2;    // Download in-progress
+  DOWNLOADED = 3;    // Download completed, verification in-progress
+  DELIVERED = 4;    // Verification completed
+  INSTALLED = 5;    // Installed, ready for activation
+  BOOTING = 6;    // booting. Booting and above means that App is activated.
+  RUNNING = 7;    // running
+  HALTING = 8;    // being halted
+  HALTED = 9;    // Halted
+  RESTARTING = 10;   // Restarting due to restart command
+  PURGING = 11;   // Purging due to purge command
   // Prior to DOWNLOAD_STARTED we go through these:
-  RESOLVING_TAG         = 12;   // Resolving an image tag
-  RESOLVED_TAG          = 13;   // Tag has been resolved/failed
+  RESOLVING_TAG = 12;   // Resolving an image tag
+  RESOLVED_TAG = 13;   // Tag has been resolved/failed
   // Prior to INSTALLED we go through these:
-  CREATING_VOLUME       = 14;   // Volume create in progress
-  CREATED_VOLUME        = 15;   // Volume create done/failed
-  VERIFYING             = 16;   // Verification in-progress
-  VERIFIED              = 17;   // Verification completed
-  LOADING               = 18;   // Loading blob in CAS
-  LOADED                = 19;   // Loaded blob in CAS
-  AWAITNETWORKINSTANCE  = 20;   // Wait for network instance
+  CREATING_VOLUME = 14;   // Volume create in progress
+  CREATED_VOLUME = 15;   // Volume create done/failed
+  VERIFYING = 16;   // Verification in-progress
+  VERIFIED = 17;   // Verification completed
+  LOADING = 18;   // Loading blob in CAS
+  LOADED = 19;   // Loaded blob in CAS
+  AWAITNETWORKINSTANCE = 20;   // Wait for network instance
 }
 
 // SW Info for Apps
@@ -197,14 +197,14 @@ message ErrorInfo {
 }
 
 enum HwSecurityModuleStatus {
-  UNKNOWN  = 0;  //HSM Status is not known
+  UNKNOWN = 0;  //HSM Status is not known
   NOTFOUND = 1;  //No HSM found
   DISABLED = 2;  //HSM found, but not being used
-  ENABLED  = 3;  //HSM is found and being actively used
+  ENABLED = 3;  //HSM is found and being actively used
 }
 
 enum DataSecAtRestStatus {
-  DATASEC_AT_REST_UNKNOWN  = 0; // Status is unknown
+  DATASEC_AT_REST_UNKNOWN = 0; // Status is unknown
   DATASEC_AT_REST_DISABLED = 1; // Enabled, but not being used
   DATASEC_AT_REST_ENABLED = 2;  // Enabled, and used
   DATASEC_AT_REST_ERROR = 4;    // Enabled, but encountered an error
@@ -256,26 +256,26 @@ message ZInfoDeviceTasks {
 }
 
 enum ZSimcardState {
-  Z_SIMCARD_STATE_INVALID     = 0;
-  Z_SIMCARD_STATE_ASSIGNED    = 1;
+  Z_SIMCARD_STATE_INVALID = 0;
+  Z_SIMCARD_STATE_ASSIGNED = 1;
   Z_SIMCARD_STATE_PROVISIONED = 2;
-  Z_SIMCARD_STATE_ACTIVE      = 3;
-  Z_SIMCARD_STATE_SUSPENDED   = 4;
-  Z_SIMCARD_STATE_CANCELLED   = 5;
+  Z_SIMCARD_STATE_ACTIVE = 3;
+  Z_SIMCARD_STATE_SUSPENDED = 4;
+  Z_SIMCARD_STATE_CANCELLED = 5;
 }
 
 message ZSimcardInfo {
-    string          name = 1;
-    string          cell_module_name = 2;
-    string          imsi = 3;
-    string          iccid = 4;
-    ZSimcardState   state = 5;
+  string          name = 1;
+  string          cell_module_name = 2;
+  string          imsi = 3;
+  string          iccid = 4;
+  ZSimcardState   state = 5;
 }
 
 message ZCellularModuleInfo {
-    string name = 1;
-    string imei = 2;
-    string firmware_version = 3;
+  string name = 1;
+  string imei = 2;
+  string firmware_version = 3;
 }
 
 // Base device info, as discovered by Xen (or OS on bare metal)
@@ -335,6 +335,8 @@ message ZInfoDevice {
 
   bool maintenance_mode = 38;
   MaintenanceModeReason maintenance_mode_reason = 39;
+
+  bool watchdog_present = 40;
 }
 
 // Different reasons for a boot/reboot
@@ -448,23 +450,23 @@ message ZInfoDevSW {
 }
 
 enum BaseOsStatus {
-  NONE          = 0;    // Should be ignored in output
-  DOWNLOADING   = 1;    // subStatus will have more details
+  NONE = 0;    // Should be ignored in output
+  DOWNLOADING = 1;    // subStatus will have more details
   DOWNLOAD_DONE = 2;    // Terminal state if user action was to download
-  UPDATING      = 3;    // subStatus will have more details including
-                        // whether it is rebooting, or testing
-  UPDATED       = 4;    // Running the configured baseimage
-  FALLBACK      = 5;    // Fallback image during testing
-  FAILED        = 6;    // See ErrInfo for details
+  UPDATING = 3;    // subStatus will have more details including
+  // whether it is rebooting, or testing
+  UPDATED = 4;    // Running the configured baseimage
+  FALLBACK = 5;    // Fallback image during testing
+  FAILED = 6;    // See ErrInfo for details
 }
 
 enum BaseOsSubStatus {
-  NONE_SUBSTATUS      = 0;
+  NONE_SUBSTATUS = 0;
   DOWNLOAD_INPROGRESS = 1;      // subStatusProgress is percentage
-  VERIFY_INPROGRESS   = 2;      // subStatusProgress is percentage
+  VERIFY_INPROGRESS = 2;      // subStatusProgress is percentage
   UPDATE_INITIALIZING = 3;
-  UPDATE_REBOOTING    = 4;      // subStatusProgress is time left
-  UPDATE_TESTING      = 5;      // subStatusProgress is time left
+  UPDATE_REBOOTING = 4;      // subStatusProgress is time left
+  UPDATE_TESTING = 5;      // subStatusProgress is time left
   UPDATE_NEED_TEST_CONFIRM = 6; // waiting for controller to commit to new
   UPDATE_DEFERRED = 7; // waiting for current update to finish
 }
@@ -497,13 +499,13 @@ message ZInfoApp {
 
 // ipSec state information
 enum ZInfoVpnState {
-  VPN_INVALID     = 0;
-  VPN_INITIAL     = 1;  // Config received
-  VPN_CONNECTING  = 2;  // Connection is in-progress
+  VPN_INVALID = 0;
+  VPN_INITIAL = 1;  // Config received
+  VPN_CONNECTING = 2;  // Connection is in-progress
   VPN_ESTABLISHED = 3;  // Connection established
-  VPN_INSTALLED   = 4;  // SAs/Routes Installed
-  VPN_REKEYED     = 5;  // SAs Rekeyed
-  VPN_DELETED     = 10; // Connection deleted
+  VPN_INSTALLED = 4;  // SAs/Routes Installed
+  VPN_REKEYED = 5;  // SAs Rekeyed
+  VPN_DELETED = 10; // Connection deleted
 }
 
 // tunnel link details
@@ -527,9 +529,9 @@ message ZInfoVpnLink {
 
 // ipsec left/right end-point info
 message ZInfoVpnEndPoint {
-  string id     = 1; // ipSec id
+  string id = 1; // ipSec id
   string ipAddr = 2; // Ip Address
-  uint32 port   = 3; // udp port
+  uint32 port = 3; // udp port
 }
 
 // Ike details
